@@ -5,7 +5,7 @@ from models import SentinelScene
 
 
 def _get_existing_dates():
-    return [scene.datetime.strftime('%Y%m%d') for scene in SentinelScene.select()]
+    return [scene.datetime.strftime('%Y-%m-%d') for scene in SentinelScene.select()]
 
 
 def _get_next_date_from(existing_dates):
@@ -13,7 +13,7 @@ def _get_next_date_from(existing_dates):
 
 
 def _parse_date(date):
-    return datetime.datetime.strptime(date, '%Y%m%d').date()
+    return datetime.datetime.strptime(date, '%Y-%m-%d').date()
 
 
 def run(date_to, date_from=None):
