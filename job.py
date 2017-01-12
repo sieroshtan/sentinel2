@@ -19,8 +19,8 @@ class Job(object):
     def run(self, date_from, date_to):
         with self._sandbox as sandbox:
             self._download_data_in(date_from, date_to, sandbox)
-            # l1a_files = sandbox.get_filepaths(startswith='S2A_OPER')
-            # [self._l2a_process(filepath) for filepath in l1a_files]
+            l1a_files = sandbox.get_filepaths(startswith='S2A_OPER')
+            [self._l2a_process(filepath) for filepath in l1a_files]
 
             l2a_files = sandbox.get_filepaths(startswith='S2A_USER')
             print("l2a_files", l2a_files)
