@@ -1,6 +1,7 @@
 import datetime
 
 from job import Job
+from sandbox import Sandbox
 from models import SentinelScene
 
 
@@ -28,7 +29,7 @@ def run(date_to, date_from=None):
 
     date_to = _parse_date(date_to)
 
-    job = Job()
+    job = Job(Sandbox('temp'))
 
     if date_from <= date_to:
         job.run(date_from, date_to)
