@@ -19,7 +19,7 @@ class Sandbox(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        shutil.rmtree(self.abspath)
+        # shutil.rmtree(self.abspath)
         return False
 
     def get_filepaths(self, startswith=''):
