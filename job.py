@@ -1,5 +1,5 @@
 import subprocess
-from os import makedirs, path, listdir
+import os
 from db import database
 from regex import params_of_granule
 
@@ -46,16 +46,38 @@ class Job(object):
         print("_l2a_process end", filepath)
 
     def _create_tile(self, filepath):
-        granula_root_folder = path.abspath(filepath)
+        granula_root_folder = os.path.abspath(filepath)
 
         print("granula_root_folder", granula_root_folder)
 
-        granule_folder = [path.basename(f) for f in listdir(granula_root_folder + '/GRANULE') if 'S2A_USER' in f][0]
+        granule_folder_path = [f for f in os.listdir(granula_root_folder + '/GRANULE') if 'S2A_USER' in f][0]
 
-        print(granule_folder)
+        print(granule_folder_path)
 
-        date, scene = params_of_granule(granule_folder, self.granule_name)
+        date, scene = params_of_granule(os.path.basename(granule_folder_path), self.granule_name)
 
         print("date", date, "scene", scene)
 
-        makedirs('tiles/S2L2A_tile_{date}_{scene}'.format(date=date, scene=scene))
+        tile_path_string = 'tiles/S2L2A_tile_{date}_{scene}'.format(date=date, scene=scene)
+
+        os.makedirs(tile_path_string)
+
+        r10m_path = os.path.join(granule_folder_path, 'IMG_DATA/R10m')
+        r20m_path = os.path.join(granule_folder_path, 'IMG_DATA/R20m')
+
+        print('r10m_path', r10m_path)
+        print('r20m_path', r20m_path)
+
+        r10m_files = [f for f in os.listdir(r10m_path) if f.endswith(('B04_10m.jp2', 'B08_10m.jp2'))]
+        r20m_files = [f for f in os.listdir(r20m_path) if f.endswith(('B11_20m.jp2', 'B12_20m.jp2'))]
+
+        print('r10m_files', r10m_files)
+        print('r20m_files', r20m_files)
+
+        needed_files = r10m_files + r20m_files
+
+        print('needed_files', needed_files)
+
+        [os.rename(f, os.path.join(tile_path_string, os.path.basename(f))) for f in needed_files]
+
+        [os.rename(f, os.path.join(os.path.dirname(f), os.path.basename(f)[-11:-8], '.jp2')) for f in os.listdir(tile_path_string) if f.endswith('.jp2')]
