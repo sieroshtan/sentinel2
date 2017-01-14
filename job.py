@@ -54,8 +54,8 @@ class Job(object):
         granule_filename = os.listdir(os.path.join(L2A_product_path, 'GRANULE'))[0]
         print('granule_filename', granule_filename)
 
-        granule_path = os.path.abspath(granule_filename)
-        print(granule_path)
+        granule_path = os.path.abspath(os.path.join(L2A_product_path, 'GRANULE', granule_filename))
+        print('granule_path', granule_path)
 
         date, scene = params_of_granule(granule_filename, self.granule_name)
 
@@ -78,6 +78,6 @@ class Job(object):
 
         print('needed_files', needed_files)
 
-        [os.rename(f, os.path.join(tile_path_string, os.path.basename(f))) for f in needed_files]
+        [os.rename(f, os.path.join(tiles_path_string, os.path.basename(f))) for f in needed_files]
 
-        [os.rename(f, os.path.join(os.path.dirname(f), os.path.basename(f)[-11:-8], '.jp2')) for f in os.listdir(tile_path_string) if f.endswith('.jp2')]
+        [os.rename(f, os.path.join(os.path.dirname(f), os.path.basename(f)[-11:-8], '.jp2')) for f in os.listdir(tiles_path_string) if f.endswith('.jp2')]
