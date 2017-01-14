@@ -46,24 +46,24 @@ class Job(object):
         print("_l2a_process end", filepath)
 
     def _create_tile(self, filepath):
-        granula_root_folder = os.path.abspath(filepath)
+        print('filepath', filepath)
 
-        print("granula_root_folder", granula_root_folder)
+        L2A_product_path = os.path.abspath(filepath)
+        print('L2A_product_path', L2A_product_path)
 
-        granule_folder_path = [f for f in os.listdir(granula_root_folder + '/GRANULE') if 'S2A_USER' in f][0]
+        granule_filename = os.listdir(os.path.join(L2A_product_path, 'GRANULE'))[0]
+        print('granule_filename', granule_filename)
 
-        print(granule_folder_path)
+        granule_path = os.path.abspath(granule_filename)
+        print(granule_path)
 
-        date, scene = params_of_granule(os.path.basename(granule_folder_path), self.granule_name)
+        date, scene = params_of_granule(granule_filename, self.granule_name)
 
-        print("date", date, "scene", scene)
+        tiles_path_string = 'tiles/S2L2A_tile_{date}_{scene}'.format(date=date, scene=scene)
+        os.makedirs(tiles_path_string)
 
-        tile_path_string = 'tiles/S2L2A_tile_{date}_{scene}'.format(date=date, scene=scene)
-
-        os.makedirs(tile_path_string)
-
-        r10m_path = os.path.join(granule_folder_path, 'IMG_DATA/R10m')
-        r20m_path = os.path.join(granule_folder_path, 'IMG_DATA/R20m')
+        r10m_path = os.path.join(granule_path, 'IMG_DATA/R10m')
+        r20m_path = os.path.join(granule_path, 'IMG_DATA/R20m')
 
         print('r10m_path', r10m_path)
         print('r20m_path', r20m_path)
