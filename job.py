@@ -15,10 +15,11 @@ def daterange(start_date, end_date):
 
 class Job(object):
 
-    def __init__(self, sandbox):
+    def __init__(self, farm_id, sandbox):
+        self._farm_id = farm_id
         self._sandbox = sandbox
 
-    tile_folder = '/users/alexander/tiles'
+    tile_folder = os.path.join(os.path.expanduser('~'), 'tiles')
 
     CLI_DOWNLOAD = "java -jar ~/ProductDownload/ProductDownload.jar --sensor S2 --aws --out {out} --tiles {tiles} --startdate {date} --enddate {date} --store AWS --cloudpercentage 50"
     CLI_L1C_TO_L2A = "L2A_Process --resolution=10 {safe}"
@@ -35,25 +36,30 @@ class Job(object):
             farm_id = farm['farm_id']
             scene = farm['scene']
             polygon = farm['poly']
+
+            print(farm_id, scene)
+            continue
+
             for single_date in daterange(date_from, date_to):
+                single_date_str = single_date.strftime('%Y%m%d')
                 with self._sandbox as sandbox:
                     params = {'out': sandbox.relpath, 'tiles': scene, 'date': single_date}
-                    # self._run_cli(self.CLI_DOWNLOAD, params)
+                    self._run_cli(self.CLI_DOWNLOAD, params)
 
-                    # L1C_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL1C_{0}.*{1}.*\.SAFE$'.format(single_date.strftime('%Y%m%d'), scene))
-                    #
-                    # if not L1C_filepath:
-                    #     return
+                    L1C_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL1C_{0}.*{1}.*\.SAFE$'.format(single_date_str, scene))
 
-                    # self.L1C_TO_L2A(L1C_filepath)
+                    if not L1C_filepath:
+                        return
+
+                    self.L1C_TO_L2A(L1C_filepath)
 
                     geo_json_path = os.path.join(self.tile_folder, str(farm_id), 'poly.geojson')
-                    tilepath = self._create_tile_folder(farm_id, single_date)
+                    tilepath = self._create_tile_folder(farm_id, single_date_str)
 
                     if not os.path.exists(geo_json_path):
                         createGeoJson(polygon, geo_json_path)
 
-                    L2A_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL2A_{0}.*{1}.*\.SAFE$'.format(single_date.strftime('%Y%m%d'), scene))
+                    L2A_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL2A_{0}.*{1}.*\.SAFE$'.format(single_date_str, scene))
 
                     self._move_jp2_to_tilepath(L2A_filepath, sandbox.abspath)
 
@@ -120,12 +126,19 @@ class Job(object):
                     }
                     self._run_cli(self.CLI_GDAL2TILES, params)
 
-                    SentinelScene.create(scene=scene, datetime=single_date)
+                    SentinelScene.create(farm_id=farm_id, scene=scene, date=single_date)
 
     def _get_farms(self):
-        cursor = database.execute_sql(
-            "select akleshnin_farm_boundary_geopoints_poly.farm_boundary_id, s2_index.name, ST_AsBinary(akleshnin_farm_boundary_geopoints_poly.geom) from akleshnin_farm_boundary_geopoints_poly inner join s2_index on ST_Intersects(akleshnin_farm_boundary_geopoints_poly.geom, s2_index.wkb_geometry) where farm_boundary_id = 111"
-        )
+        sql = "select akleshnin_farm_boundary_geopoints_poly.farm_boundary_id, s2_index.name, ST_AsBinary(akleshnin_farm_boundary_geopoints_poly.geom) " \
+        "from akleshnin_farm_boundary_geopoints_poly " \
+        "inner join s2_index on s2_index.ogc_fid = (select ogc_fid from s2_index where ST_Intersects(akleshnin_farm_boundary_geopoints_poly.geom, s2_index.wkb_geometry) limit 1)"
+
+        if self._farm_id:
+            cursor = database.execute_sql("select id from farm_boundaries where farm_id = {0} limit 1".format(self._farm_id))
+            farm_boundary_id = cursor.fetchone()[0]
+            sql += " where farm_boundary_id = {0}".format(farm_boundary_id)
+
+        cursor = database.execute_sql(sql)
         data = []
         for row in cursor.fetchall():
             data.append({
@@ -138,8 +151,7 @@ class Job(object):
     def L1C_TO_L2A(self, filepath):
         self._run_cli(self.CLI_L1C_TO_L2A, {'safe': filepath})
 
-    def _create_tile_folder(self, farm_id, date):
-        date_str = date.strftime('%Y%m%d')
+    def _create_tile_folder(self, farm_id, date_str):
         tilepath = os.path.join(self.tile_folder, str(farm_id), date_str)
 
         if os.path.exists(tilepath):
