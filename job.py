@@ -7,6 +7,8 @@ from db import database
 from models import SentinelScene
 from geo_json_helper import createGeoJson
 
+from osgeo import gdal
+
 
 def daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days) + 1):
@@ -123,7 +125,18 @@ class Job(object):
                     }
                     self._run_cli(self.CLI_GDAL2TILES, params)
 
-                    SentinelScene.create(farm_id=farm_id, scene=scene, date=single_date)
+                    ndvi_index, nmdi_index = self._get_ndvi_and_nmdi_indexes(
+                        os.path.join(sandbox.abspath, 'ndvi_clip.tif'),
+                        os.path.join(sandbox.abspath, 'nmdi_clip.tif')
+                    )
+
+                    SentinelScene.create(
+                        farm_id=farm_id,
+                        scene=scene,
+                        date=single_date,
+                        ndvi=ndvi_index,
+                        nmdi=nmdi_index
+                    )
 
     def _get_farms(self):
         sql = "select farms.id, s2_index.name, farms.polygon from farms " \
@@ -172,6 +185,21 @@ class Job(object):
     def _jp2_to_tif(self, jp2_path):
         params = {'jp2': jp2_path, 'tif': jp2_path.replace('jp2', 'tif')}
         self._run_cli(self.CLI_GDAL_TRANSLATE, params)
+
+    def _get_ndvi_and_nmdi_indexes(self, ndvi_tif, nmdi_tif):
+        dataset = gdal.Open(ndvi_tif)
+        band = dataset.GetRasterBand(1)
+        band.SetNoDataValue(0)
+        stats = band.ComputeStatistics(0)
+        ndvi_index = "%.3f" % stats[2]
+
+        dataset = gdal.Open(nmdi_tif)
+        band = dataset.GetRasterBand(1)
+        band.SetNoDataValue(0)
+        stats = band.ComputeStatistics(0)
+        nmdi_index = "%.3f" % stats[2]
+
+        return ndvi_index, nmdi_index
 
     def _run_cli(self, command, params):
         print subprocess.Popen(
