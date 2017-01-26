@@ -45,7 +45,8 @@ class Job(object):
                     params = {'out': sandbox.relpath, 'tiles': scene, 'date': single_date}
                     self._run_cli(self.CLI_DOWNLOAD, params)
 
-                    L1C_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL1C_{0}.*{1}.*\.SAFE$'.format(single_date_str, scene))
+                    # L1C_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL1C_{0}.*{1}.*\.SAFE$'.format(single_date_str, scene))
+                    L1C_filepath = sandbox.get_filepath(pattern=r'^S2A_.*_MSIL1C_.*_{0}.*\.SAFE$'.format(single_date_str))
 
                     if not L1C_filepath:
                         return
@@ -58,7 +59,8 @@ class Job(object):
                     if not os.path.exists(geo_json_path):
                         createGeoJson(polygon, geo_json_path)
 
-                    L2A_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL2A_{0}.*{1}.*\.SAFE$'.format(single_date_str, scene))
+                    # L2A_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL2A_{0}.*{1}.*\.SAFE$'.format(single_date_str, scene))
+                    L2A_filepath = sandbox.get_filepath(pattern=r'^S2A_.*_MSIL2A_.*{0}.*\.SAFE$'.format(single_date_str))
 
                     self._move_jp2_to_tilepath(L2A_filepath, sandbox.abspath)
 
@@ -182,7 +184,8 @@ class Job(object):
         return tilepath
 
     def _move_jp2_to_tilepath(self, L2A_filepath, tilepath):
-        granule_name = [f for f in os.listdir(os.path.join(L2A_filepath, 'GRANULE')) if f.startswith('L2A_')][0]
+        # granule_name = [f for f in os.listdir(os.path.join(L2A_filepath, 'GRANULE')) if f.startswith('L2A_')][0]
+        granule_name = [f for f in os.listdir(os.path.join(L2A_filepath, 'GRANULE')) if f.startswith('S2A_USER_')][0]
 
         r10m_path = os.path.join(L2A_filepath, 'GRANULE', granule_name, 'IMG_DATA/R10m')
         r20m_path = os.path.join(L2A_filepath, 'GRANULE', granule_name, 'IMG_DATA/R20m')
