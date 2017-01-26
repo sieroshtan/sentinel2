@@ -129,14 +129,11 @@ class Job(object):
                     SentinelScene.create(farm_id=farm_id, scene=scene, date=single_date)
 
     def _get_farms(self):
-        sql = "select akleshnin_farm_boundary_geopoints_poly.farm_boundary_id, s2_index.name, ST_AsBinary(akleshnin_farm_boundary_geopoints_poly.geom) " \
-        "from akleshnin_farm_boundary_geopoints_poly " \
-        "inner join s2_index on s2_index.ogc_fid = (select ogc_fid from s2_index where ST_Intersects(akleshnin_farm_boundary_geopoints_poly.geom, s2_index.wkb_geometry) limit 1)"
+        sql = "select farms.id, s2_index.name, farms.polygon from farms " \
+              "inner join s2_index on ST_Intersects(farms.polygon, s2_index.wkb_geometry)"
 
         if self._farm_id:
-            cursor = database.execute_sql("select id from farm_boundaries where farm_id = {0} limit 1".format(self._farm_id))
-            farm_boundary_id = cursor.fetchone()[0]
-            sql += " where farm_boundary_id = {0}".format(farm_boundary_id)
+            sql += " where farms.id = {0}".format(self._farm_id)
 
         cursor = database.execute_sql(sql)
         data = []
