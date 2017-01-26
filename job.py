@@ -37,9 +37,6 @@ class Job(object):
             scene = farm['scene']
             polygon = farm['poly']
 
-            print(farm_id, scene)
-            continue
-
             for single_date in daterange(date_from, date_to):
                 single_date_str = single_date.strftime('%Y%m%d')
                 with self._sandbox as sandbox:
@@ -88,14 +85,14 @@ class Job(object):
 
                     params = {
                         'input': os.path.join(sandbox.abspath, 'ndvi.tif'),
-                        'color': os.path.join(os.getcwd(), 'color_relief.txt'),
+                        'color': os.path.join(os.getcwd(), 'color_relief_ndvi.txt'),
                         'output': os.path.join(tilepath, 'ndvi_rgb.tif')
                     }
                     self._run_cli(self.CLI_GDALDEM, params)
 
                     params = {
                         'input': os.path.join(sandbox.abspath, 'nmdi.tif'),
-                        'color': os.path.join(os.getcwd(), 'color_relief.txt'),
+                        'color': os.path.join(os.getcwd(), 'color_relief_nmdi.txt'),
                         'output': os.path.join(tilepath, 'nmdi_rgb.tif')
                     }
                     self._run_cli(self.CLI_GDALDEM, params)
