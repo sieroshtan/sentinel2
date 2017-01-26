@@ -88,27 +88,41 @@ class Job(object):
                     params = {
                         'input': os.path.join(sandbox.abspath, 'ndvi.tif'),
                         'color': os.path.join(os.getcwd(), 'color_relief_ndvi.txt'),
-                        'output': os.path.join(tilepath, 'ndvi_rgb.tif')
+                        'output': os.path.join(sandbox.abspath, 'ndvi_rgb.tif')
                     }
                     self._run_cli(self.CLI_GDALDEM, params)
 
                     params = {
                         'input': os.path.join(sandbox.abspath, 'nmdi.tif'),
                         'color': os.path.join(os.getcwd(), 'color_relief_nmdi.txt'),
-                        'output': os.path.join(tilepath, 'nmdi_rgb.tif')
+                        'output': os.path.join(sandbox.abspath, 'nmdi_rgb.tif')
                     }
                     self._run_cli(self.CLI_GDALDEM, params)
 
                     params = {
-                        'rgb': os.path.join(tilepath, 'ndvi_rgb.tif'),
+                        'rgb': os.path.join(sandbox.abspath, 'ndvi_rgb.tif'),
                         'clip': os.path.join(sandbox.abspath, 'ndvi_clip.tif'),
                         'geojson': geo_json_path
                     }
                     self._run_cli(self.CLI_GDALWARP, params)
 
                     params = {
-                        'rgb': os.path.join(tilepath, 'nmdi_rgb.tif'),
+                        'rgb': os.path.join(sandbox.abspath, 'nmdi_rgb.tif'),
                         'clip': os.path.join(sandbox.abspath, 'nmdi_clip.tif'),
+                        'geojson': geo_json_path
+                    }
+                    self._run_cli(self.CLI_GDALWARP, params)
+
+                    params = {
+                        'rgb': os.path.join(sandbox.abspath, 'ndvi.tif'),
+                        'clip': os.path.join(sandbox.abspath, 'ndvi_clip_raw.tif'),
+                        'geojson': geo_json_path
+                    }
+                    self._run_cli(self.CLI_GDALWARP, params)
+
+                    params = {
+                        'rgb': os.path.join(sandbox.abspath, 'nmdi.tif'),
+                        'clip': os.path.join(sandbox.abspath, 'nmdi_clip_raw.tif'),
                         'geojson': geo_json_path
                     }
                     self._run_cli(self.CLI_GDALWARP, params)
@@ -126,8 +140,8 @@ class Job(object):
                     self._run_cli(self.CLI_GDAL2TILES, params)
 
                     ndvi_index, nmdi_index = self._get_ndvi_and_nmdi_indexes(
-                        os.path.join(sandbox.abspath, 'ndvi_clip.tif'),
-                        os.path.join(sandbox.abspath, 'nmdi_clip.tif')
+                        os.path.join(sandbox.abspath, 'ndvi_clip_raw.tif'),
+                        os.path.join(sandbox.abspath, 'nmdi_clip_raw.tif')
                     )
 
                     SentinelScene.create(
@@ -139,7 +153,7 @@ class Job(object):
                     )
 
     def _get_farms(self):
-        sql = "select farms.id, s2_index.name, farms.polygon from farms " \
+        sql = "select farms.id, s2_index.name, ST_AsBinary(farms.polygon) from farms " \
               "inner join s2_index on ST_Intersects(farms.polygon, s2_index.wkb_geometry)"
 
         if self._farm_id:
@@ -162,8 +176,7 @@ class Job(object):
         tilepath = os.path.join(self.tile_folder, str(farm_id), date_str)
 
         if os.path.exists(tilepath):
-            # shutil.rmtree(tilepath) # TODO: remove
-            pass
+            shutil.rmtree(tilepath)  # TODO: remove
         os.makedirs(tilepath)
 
         return tilepath
@@ -191,13 +204,13 @@ class Job(object):
         band = dataset.GetRasterBand(1)
         band.SetNoDataValue(0)
         stats = band.ComputeStatistics(0)
-        ndvi_index = "%.3f" % stats[2]
+        ndvi_index = stats[2]
 
         dataset = gdal.Open(nmdi_tif)
         band = dataset.GetRasterBand(1)
         band.SetNoDataValue(0)
         stats = band.ComputeStatistics(0)
-        nmdi_index = "%.3f" % stats[2]
+        nmdi_index = stats[2]
 
         return ndvi_index, nmdi_index
 
