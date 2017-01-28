@@ -9,8 +9,8 @@ class Sandbox(object):
         self.relpath = sandbox_path
 
     def _init(self):
-        if not os.path.exists(self.abspath):
-            if os.path.isdir(self.abspath):
+        if os.path.exists(self.abspath):
+            if not os.path.isdir(self.abspath):
                 raise ValueError("{0} exists and is not a directory".format(self.abspath))
             shutil.rmtree(self.abspath)
         os.makedirs(self.abspath)
