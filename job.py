@@ -195,8 +195,8 @@ class Job(object):
 
         needed_files = r10m_filepaths + r20m_filepaths
 
-        # [os.rename(f, os.path.join(tilepath, os.path.basename(f)[-11:-8] + '.jp2')) for f in needed_files]  # prod
-        [shutil.copyfile(f, os.path.join(tilepath, os.path.basename(f)[-11:-8] + '.jp2')) for f in needed_files]  # dev
+        [os.rename(f, os.path.join(tilepath, os.path.basename(f)[-11:-8] + '.jp2')) for f in needed_files]  # prod
+        # [shutil.copyfile(f, os.path.join(tilepath, os.path.basename(f)[-11:-8] + '.jp2')) for f in needed_files]  # dev
 
     def _jp2_to_tif(self, jp2_path):
         params = {'jp2': jp2_path, 'tif': jp2_path.replace('jp2', 'tif')}
