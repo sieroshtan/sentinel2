@@ -41,118 +41,121 @@ class Job(object):
 
             for single_date in daterange(date_from, date_to):
                 single_date_str = single_date.strftime('%Y%m%d')
-                with self._sandbox as sandbox:
-                    params = {'out': sandbox.relpath, 'tiles': scene, 'date': single_date}
-                    self._run_cli(self.CLI_DOWNLOAD, params)
+                try:
+                    with self._sandbox as sandbox:
+                        params = {'out': sandbox.relpath, 'tiles': scene, 'date': single_date}
+                        self._run_cli(self.CLI_DOWNLOAD, params)
 
-                    # L1C_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL1C_{0}.*{1}.*\.SAFE$'.format(single_date_str, scene))
-                    L1C_filepath = sandbox.get_filepath(pattern=r'^S2A_.*_MSIL1C_.*_{0}.*\.SAFE$'.format(single_date_str))
+                        # L1C_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL1C_{0}.*{1}.*\.SAFE$'.format(single_date_str, scene))
+                        L1C_filepath = sandbox.get_filepath(pattern=r'^S2A_.*_MSIL1C_.*_{0}.*\.SAFE$'.format(single_date_str))
 
-                    if not L1C_filepath:
-                        return
+                        if not L1C_filepath:
+                            raise BaseException
 
-                    self.L1C_TO_L2A(L1C_filepath)
+                        self.L1C_TO_L2A(L1C_filepath)
 
-                    geo_json_path = os.path.join(self.tile_folder, str(farm_id), 'poly.geojson')
-                    tilepath = self._create_tile_folder(farm_id, single_date_str)
+                        geo_json_path = os.path.join(self.tile_folder, str(farm_id), 'poly.geojson')
+                        tilepath = self._create_tile_folder(farm_id, single_date_str)
 
-                    if not os.path.exists(geo_json_path):
-                        createGeoJson(polygon, geo_json_path)
+                        if not os.path.exists(geo_json_path):
+                            createGeoJson(polygon, geo_json_path)
 
-                    # L2A_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL2A_{0}.*{1}.*\.SAFE$'.format(single_date_str, scene))
-                    L2A_filepath = sandbox.get_filepath(pattern=r'^S2A_.*_MSIL2A_.*{0}.*\.SAFE$'.format(single_date_str))
+                        # L2A_filepath = sandbox.get_filepath(pattern=r'^S2A_MSIL2A_{0}.*{1}.*\.SAFE$'.format(single_date_str, scene))
+                        L2A_filepath = sandbox.get_filepath(pattern=r'^S2A_.*_MSIL2A_.*{0}.*\.SAFE$'.format(single_date_str))
 
-                    self._move_jp2_to_tilepath(L2A_filepath, sandbox.abspath)
+                        self._move_jp2_to_tilepath(L2A_filepath, sandbox.abspath)
 
-                    [self._jp2_to_tif(os.path.join(sandbox.abspath, f)) for f in os.listdir(sandbox.abspath) if f.endswith('.jp2')]
+                        [self._jp2_to_tif(os.path.join(sandbox.abspath, f)) for f in os.listdir(sandbox.abspath) if f.endswith('.jp2')]
 
-                    params = {
-                        'B08': os.path.join(sandbox.abspath, 'B08.tif'),
-                        'B04': os.path.join(sandbox.abspath, 'B04.tif'),
-                        'outfile': os.path.join(sandbox.abspath, 'ndvi.tif'),
-                    }
-                    self._run_cli(self.CLI_NDVI, params)
+                        params = {
+                            'B08': os.path.join(sandbox.abspath, 'B08.tif'),
+                            'B04': os.path.join(sandbox.abspath, 'B04.tif'),
+                            'outfile': os.path.join(sandbox.abspath, 'ndvi.tif'),
+                        }
+                        self._run_cli(self.CLI_NDVI, params)
 
-                    params = {
-                        'vrt': os.path.join(sandbox.abspath, 'nmdi_vrt.tif'),
-                        'B08': os.path.join(sandbox.abspath, 'B08.tif'),
-                        'B11': os.path.join(sandbox.abspath, 'B11.tif'),
-                        'B12': os.path.join(sandbox.abspath, 'B12.tif')
-                    }
-                    self._run_cli(self.CLI_GDALBUILDVRT, params)
+                        params = {
+                            'vrt': os.path.join(sandbox.abspath, 'nmdi_vrt.tif'),
+                            'B08': os.path.join(sandbox.abspath, 'B08.tif'),
+                            'B11': os.path.join(sandbox.abspath, 'B11.tif'),
+                            'B12': os.path.join(sandbox.abspath, 'B12.tif')
+                        }
+                        self._run_cli(self.CLI_GDALBUILDVRT, params)
 
-                    params = {
-                        'vrt': os.path.join(sandbox.abspath, 'nmdi_vrt.tif'),
-                        'outfile': os.path.join(sandbox.abspath, 'nmdi.tif')
-                    }
-                    self._run_cli(self.CLI_NMDI, params)
+                        params = {
+                            'vrt': os.path.join(sandbox.abspath, 'nmdi_vrt.tif'),
+                            'outfile': os.path.join(sandbox.abspath, 'nmdi.tif')
+                        }
+                        self._run_cli(self.CLI_NMDI, params)
 
-                    params = {
-                        'input': os.path.join(sandbox.abspath, 'ndvi.tif'),
-                        'color': os.path.join(os.getcwd(), 'color_relief_ndvi.txt'),
-                        'output': os.path.join(sandbox.abspath, 'ndvi_rgb.tif')
-                    }
-                    self._run_cli(self.CLI_GDALDEM, params)
+                        params = {
+                            'input': os.path.join(sandbox.abspath, 'ndvi.tif'),
+                            'color': os.path.join(os.getcwd(), 'color_relief_ndvi.txt'),
+                            'output': os.path.join(sandbox.abspath, 'ndvi_rgb.tif')
+                        }
+                        self._run_cli(self.CLI_GDALDEM, params)
 
-                    params = {
-                        'input': os.path.join(sandbox.abspath, 'nmdi.tif'),
-                        'color': os.path.join(os.getcwd(), 'color_relief_nmdi.txt'),
-                        'output': os.path.join(sandbox.abspath, 'nmdi_rgb.tif')
-                    }
-                    self._run_cli(self.CLI_GDALDEM, params)
+                        params = {
+                            'input': os.path.join(sandbox.abspath, 'nmdi.tif'),
+                            'color': os.path.join(os.getcwd(), 'color_relief_nmdi.txt'),
+                            'output': os.path.join(sandbox.abspath, 'nmdi_rgb.tif')
+                        }
+                        self._run_cli(self.CLI_GDALDEM, params)
 
-                    params = {
-                        'rgb': os.path.join(sandbox.abspath, 'ndvi_rgb.tif'),
-                        'clip': os.path.join(sandbox.abspath, 'ndvi_clip.tif'),
-                        'geojson': geo_json_path
-                    }
-                    self._run_cli(self.CLI_GDALWARP, params)
+                        params = {
+                            'rgb': os.path.join(sandbox.abspath, 'ndvi_rgb.tif'),
+                            'clip': os.path.join(sandbox.abspath, 'ndvi_clip.tif'),
+                            'geojson': geo_json_path
+                        }
+                        self._run_cli(self.CLI_GDALWARP, params)
 
-                    params = {
-                        'rgb': os.path.join(sandbox.abspath, 'nmdi_rgb.tif'),
-                        'clip': os.path.join(sandbox.abspath, 'nmdi_clip.tif'),
-                        'geojson': geo_json_path
-                    }
-                    self._run_cli(self.CLI_GDALWARP, params)
+                        params = {
+                            'rgb': os.path.join(sandbox.abspath, 'nmdi_rgb.tif'),
+                            'clip': os.path.join(sandbox.abspath, 'nmdi_clip.tif'),
+                            'geojson': geo_json_path
+                        }
+                        self._run_cli(self.CLI_GDALWARP, params)
 
-                    params = {
-                        'rgb': os.path.join(sandbox.abspath, 'ndvi.tif'),
-                        'clip': os.path.join(sandbox.abspath, 'ndvi_clip_raw.tif'),
-                        'geojson': geo_json_path
-                    }
-                    self._run_cli(self.CLI_GDALWARP, params)
+                        params = {
+                            'rgb': os.path.join(sandbox.abspath, 'ndvi.tif'),
+                            'clip': os.path.join(sandbox.abspath, 'ndvi_clip_raw.tif'),
+                            'geojson': geo_json_path
+                        }
+                        self._run_cli(self.CLI_GDALWARP, params)
 
-                    params = {
-                        'rgb': os.path.join(sandbox.abspath, 'nmdi.tif'),
-                        'clip': os.path.join(sandbox.abspath, 'nmdi_clip_raw.tif'),
-                        'geojson': geo_json_path
-                    }
-                    self._run_cli(self.CLI_GDALWARP, params)
+                        params = {
+                            'rgb': os.path.join(sandbox.abspath, 'nmdi.tif'),
+                            'clip': os.path.join(sandbox.abspath, 'nmdi_clip_raw.tif'),
+                            'geojson': geo_json_path
+                        }
+                        self._run_cli(self.CLI_GDALWARP, params)
 
-                    params = {
-                        'input': os.path.join(sandbox.abspath, 'ndvi_clip.tif'),
-                        'output': os.path.join(tilepath, 'ndvi')
-                    }
-                    self._run_cli(self.CLI_GDAL2TILES, params)
+                        params = {
+                            'input': os.path.join(sandbox.abspath, 'ndvi_clip.tif'),
+                            'output': os.path.join(tilepath, 'ndvi')
+                        }
+                        self._run_cli(self.CLI_GDAL2TILES, params)
 
-                    params = {
-                        'input': os.path.join(sandbox.abspath, 'nmdi_clip.tif'),
-                        'output': os.path.join(tilepath, 'nmdi')
-                    }
-                    self._run_cli(self.CLI_GDAL2TILES, params)
+                        params = {
+                            'input': os.path.join(sandbox.abspath, 'nmdi_clip.tif'),
+                            'output': os.path.join(tilepath, 'nmdi')
+                        }
+                        self._run_cli(self.CLI_GDAL2TILES, params)
 
-                    ndvi_index, nmdi_index = self._get_ndvi_and_nmdi_indexes(
-                        os.path.join(sandbox.abspath, 'ndvi_clip_raw.tif'),
-                        os.path.join(sandbox.abspath, 'nmdi_clip_raw.tif')
-                    )
+                        ndvi_index, nmdi_index = self._get_ndvi_and_nmdi_indexes(
+                            os.path.join(sandbox.abspath, 'ndvi_clip_raw.tif'),
+                            os.path.join(sandbox.abspath, 'nmdi_clip_raw.tif')
+                        )
 
-                    SentinelScene.create(
-                        farm_id=farm_id,
-                        scene=scene,
-                        date=single_date,
-                        ndvi=ndvi_index,
-                        nmdi=nmdi_index
-                    )
+                        SentinelScene.create(
+                            farm_id=farm_id,
+                            scene=scene,
+                            date=single_date,
+                            ndvi=ndvi_index,
+                            nmdi=nmdi_index
+                        )
+                except:
+                    continue
 
     def _get_farms(self):
         sql = "select farms.id, s2_index.name, ST_AsBinary(farms.polygon) from farms " \
@@ -218,6 +221,7 @@ class Job(object):
         return ndvi_index, nmdi_index
 
     def _run_cli(self, command, params):
+        print(command.format(**params))
         print subprocess.Popen(
             command.format(**params),
             shell=True, stdout=subprocess.PIPE
