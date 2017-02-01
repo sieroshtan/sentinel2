@@ -1,7 +1,7 @@
 import subprocess
 import shutil
 import os
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from db import database
 from models import SentinelScene
@@ -10,9 +10,13 @@ from geo_json_helper import createGeoJson
 from osgeo import gdal
 
 
-def daterange(start_date, end_date):
+def _daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days) + 1):
         yield start_date + timedelta(n)
+
+
+def _get_existing_dates(farm_id):
+    return [entry.date for entry in SentinelScene.select().where(SentinelScene.farm_id == farm_id)]
 
 
 class Job(object):
@@ -39,7 +43,13 @@ class Job(object):
             scene = farm['scene']
             polygon = farm['poly']
 
-            for single_date in daterange(date_from, date_to):
+            existing_dates = _get_existing_dates(farm_id)
+
+            for single_date in _daterange(date_from, date_to):
+                if single_date in existing_dates:
+                    print("Scene for {0} date already processed in the DB. Skipped.".format(single_date.strftime('%Y-%m-%d')))
+                    continue
+
                 single_date_str = single_date.strftime('%Y%m%d')
                 try:
                     with self._sandbox as sandbox:
