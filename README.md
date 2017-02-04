@@ -33,3 +33,10 @@ $ source ~/.bashrc
 
 7. Install peewee and psycopg2
 $ pip install peewee psycopg2
+
+
+8. run parsing
+$ cd sentinel2
+$ python run.py -f 126 -s 2016-05-01 2016-05-31 &
+-f – farm id (optional)
+-s – from date (optional)

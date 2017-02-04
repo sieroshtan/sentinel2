@@ -140,30 +140,31 @@ class Job(object):
                         }
                         self._run_cli(self.CLI_GDALWARP, params)
 
-                        params = {
-                            'input': os.path.join(sandbox.abspath, 'ndvi_clip.tif'),
-                            'output': os.path.join(tilepath, 'ndvi')
-                        }
-                        self._run_cli(self.CLI_GDAL2TILES, params)
-
-                        params = {
-                            'input': os.path.join(sandbox.abspath, 'nmdi_clip.tif'),
-                            'output': os.path.join(tilepath, 'nmdi')
-                        }
-                        self._run_cli(self.CLI_GDAL2TILES, params)
-
                         ndvi_index, nmdi_index = self._get_ndvi_and_nmdi_indexes(
                             os.path.join(sandbox.abspath, 'ndvi_clip_raw.tif'),
                             os.path.join(sandbox.abspath, 'nmdi_clip_raw.tif')
                         )
 
-                        SentinelScene.create(
-                            farm_id=farm_id,
-                            scene=scene,
-                            date=single_date,
-                            ndvi=ndvi_index,
-                            nmdi=nmdi_index
-                        )
+                        if ndvi_index > 0 and nmdi_index > 0:
+                            SentinelScene.create(
+                                farm_id=farm_id,
+                                scene=scene,
+                                date=single_date,
+                                ndvi=ndvi_index,
+                                nmdi=nmdi_index
+                            )
+
+                            params = {
+                                'input': os.path.join(sandbox.abspath, 'ndvi_clip.tif'),
+                                'output': os.path.join(tilepath, 'ndvi')
+                            }
+                            self._run_cli(self.CLI_GDAL2TILES, params)
+
+                            params = {
+                                'input': os.path.join(sandbox.abspath, 'nmdi_clip.tif'),
+                                'output': os.path.join(tilepath, 'nmdi')
+                            }
+                            self._run_cli(self.CLI_GDAL2TILES, params)
                 except:
                     continue
 
