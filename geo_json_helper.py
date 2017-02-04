@@ -2,6 +2,12 @@ from osgeo import ogr
 
 
 def createGeoJson(bin, tilepath):
+    """
+    Create geojson file with a farm polygon
+    :param bin:
+    :param tilepath:
+    :return:
+    """
     poly = ogr.CreateGeometryFromWkb(bytes(bin))
 
     # Create the output Driver

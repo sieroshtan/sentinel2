@@ -3,6 +3,10 @@ import jobrunner
 
 
 def main():
+    """
+    Parse command arguments
+    :return:
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--farm_id', help='farm id from farm_boundaries table')
     parser.add_argument('-s', '--start', help='start date in ISO YYYY-mm-dd format')

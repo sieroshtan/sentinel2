@@ -11,22 +11,38 @@ from osgeo import gdal
 
 
 def _daterange(start_date, end_date):
+    """
+    Date range generator
+    :param start_date:
+    :param end_date:
+    :return:
+    """
     for n in range(int((end_date - start_date).days) + 1):
         yield start_date + timedelta(n)
 
 
 def _get_existing_dates(farm_id):
+    """
+    Return processed dates for a farm
+    :param farm_id:
+    :return:
+    """
     return [entry.date for entry in SentinelScene.select().where(SentinelScene.farm_id == farm_id)]
 
 
 class Job(object):
+    """
+    Main class job for download, converting, processing, etc.
+    """
 
     def __init__(self, farm_id, sandbox):
         self._farm_id = farm_id
         self._sandbox = sandbox
 
+    # folder for tiles saving
     tile_folder = os.path.join(os.path.expanduser('~'), 'tiles')
 
+    # command templates
     CLI_DOWNLOAD = "java -jar ~/ProductDownload/ProductDownload.jar --sensor S2 --aws --out {out} --tiles {tiles} --startdate {date} --enddate {date} --store AWS --cloudpercentage 50"
     CLI_L1C_TO_L2A = "L2A_Process --resolution=10 {safe}"
     CLI_GDAL_TRANSLATE = "gdal_translate -co TILED=YES --config GDAL_CACHEMAX 500 {jp2} {tif}"
@@ -49,6 +65,8 @@ class Job(object):
                 if single_date in existing_dates:
                     print("Scene for {0} date already processed in the DB. Skipped.".format(single_date.strftime('%Y-%m-%d')))
                     continue
+
+                print(farm_id, single_date)
 
                 single_date_str = single_date.strftime('%Y%m%d')
                 try:
@@ -145,7 +163,7 @@ class Job(object):
                             os.path.join(sandbox.abspath, 'nmdi_clip_raw.tif')
                         )
 
-                        if ndvi_index > 0 and nmdi_index > 0:
+                        if ndvi_index > 0 and nmdi_index > 0:  # skip scenes with zero indexes
                             SentinelScene.create(
                                 farm_id=farm_id,
                                 scene=scene,
@@ -166,9 +184,14 @@ class Job(object):
                             }
                             self._run_cli(self.CLI_GDAL2TILES, params)
                 except:
+                    # continue processing next date
                     continue
 
     def _get_farms(self):
+        """
+        Return farm geo data, like: scene id and polygon
+        :return:
+        """
         sql = "select farms.id, s2_index.name, ST_AsBinary(farms.polygon) from farms " \
               "inner join s2_index on ST_Intersects(farms.polygon, s2_index.wkb_geometry)"
 
@@ -192,7 +215,7 @@ class Job(object):
         tilepath = os.path.join(self.tile_folder, str(farm_id), date_str)
 
         if os.path.exists(tilepath):
-            shutil.rmtree(tilepath)  # TODO: remove
+            shutil.rmtree(tilepath)
         os.makedirs(tilepath)
 
         return tilepath
@@ -232,7 +255,6 @@ class Job(object):
         return ndvi_index, nmdi_index
 
     def _run_cli(self, command, params):
-        print(command.format(**params))
         print subprocess.Popen(
             command.format(**params),
             shell=True, stdout=subprocess.PIPE

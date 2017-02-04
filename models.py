@@ -3,6 +3,9 @@ from db import BaseModel
 
 
 class SentinelScene(BaseModel):
+    """
+    Model for parsed scenes
+    """
     farm_id = peewee.IntegerField()
     scene = peewee.TextField()
     date = peewee.DateField()
