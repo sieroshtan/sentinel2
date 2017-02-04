@@ -255,6 +255,7 @@ class Job(object):
         return ndvi_index, nmdi_index
 
     def _run_cli(self, command, params):
+        print(command.format(**params))
         print subprocess.Popen(
             command.format(**params),
             shell=True, stdout=subprocess.PIPE
