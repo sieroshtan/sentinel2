@@ -21,11 +21,12 @@ def run(farm_id, date_to, date_from=None):
     :param date_from:
     :return:
     """
+    date_to = _parse_date(date_to)
 
     if date_from:
         date_from = _parse_date(date_from)
     else:
-        date_from = _parse_date(date_to)
+        date_from = date_to
 
     job = Job(farm_id, Sandbox('temp'))
 
